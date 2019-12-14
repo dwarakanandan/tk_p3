@@ -3,10 +3,7 @@
 .vscode
 .classpath
 .idea
-/backend/bin/
-/frontend/bin/
-/backend/build/
-/frontend/build/
+build/
 
 # Ignore Gradle GUI config
 gradle-app.setting

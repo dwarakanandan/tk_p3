@@ -60,8 +60,12 @@ public class AirportInfoImpl implements AirportInfo {
      */
     @Override
     public Dataset<Row> mostCommonDestinations(Dataset<Row> departingFlights) {
-        // TODO: Implement
-        return null;
+        Dataset<Row> arrivalAirports = departingFlights.select("flight.arrivalAirport").filter(departingFlights.col("flight.arrivalAirport").notEqual(""));
+        Dataset<Row> countOfArrivalAirports = arrivalAirports.groupBy("arrivalAirport").count();
+        Dataset<Row> sortedCountOfArrivalAirports = countOfArrivalAirports.orderBy(col("count").desc());
+        //System.out.println(sortedCountOfArrivalAirports.count());
+        //sortedCountOfArrivalAirports.show();
+        return sortedCountOfArrivalAirports;
     }
 
     /**
