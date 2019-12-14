@@ -61,11 +61,12 @@ public class AirportInfoImpl implements AirportInfo {
     @Override
     public Dataset<Row> mostCommonDestinations(Dataset<Row> departingFlights) {
         // Filter the arrivalAirport to get only those that are not-null or non-empty strings
-        Dataset<Row> arrivalAirports = departingFlights.select("flight.arrivalAirport").filter(r -> !r.anyNull()).filter(departingFlights.col("flight.arrivalAirport").notEqual(""));
+        Dataset<Row> arrivalAirports = departingFlights.select("flight.arrivalAirport").filter(departingFlights.col("flight.arrivalAirport").isNotNull()).filter(departingFlights.col("flight.arrivalAirport").notEqual(""));
         // Group-by arrivalAirport and get count
         Dataset<Row> countOfArrivalAirports = arrivalAirports.groupBy("arrivalAirport").count();
         // Sort the above data frame in descending order of count
         Dataset<Row> sortedCountOfArrivalAirports = countOfArrivalAirports.orderBy(col("count").desc());
+        System.out.println("Task 1 - mostCommonDestinations");
         sortedCountOfArrivalAirports.show();
         return sortedCountOfArrivalAirports;
     }
@@ -84,8 +85,15 @@ public class AirportInfoImpl implements AirportInfo {
      */
     @Override
     public Dataset<Row> gatesWithFlightsToBerlin(Dataset<Row> departureFlights) {
-        // TODO: Implement
-        return null;
+        Dataset<Row> flightsToBerlin = departureFlights.select("flight.departure.gates")
+            .filter(departureFlights.col("flight.arrivalAirport").isNotNull())
+            .filter(departureFlights.col("flight.arrivalAirport").equalTo("TXL"));
+        Dataset<Row> gatesFlightsToBerlin = flightsToBerlin.withColumn("gates", explode(flightsToBerlin.col("gates")));
+        Dataset<Row> countGatesFlightsToBerlin = gatesFlightsToBerlin.groupBy("gates.gate").count();
+        Dataset<Row> sortedCountGatesFlightsToBerlin = countGatesFlightsToBerlin.orderBy(col("count").desc());
+        System.out.println("Task 2 - gatesWithFlightsToBerlin");
+        sortedCountGatesFlightsToBerlin.show();
+        return sortedCountGatesFlightsToBerlin;
     }
 
     /**
