@@ -135,8 +135,52 @@ public class AirportInfoImpl implements AirportInfo {
      */
     @Override
     public String ryanairStrike(Dataset<Row> flights) {
-        // TODO: Implement
+        
+        Dataset<Row> ryanairFlights = flights.select("flight.originDate","flight.flightStatus")
+            .filter(flights.col("flight.operatingAirline.name").equalTo("Ryanair"));
+        
+        // Iterate over all days in August
+        for (int i = 1; i <= 31; i++) {
+            String date = "2018-08-";
+            if(i<10) {
+                date+= "0" + i;
+            } else {
+                date+= i;
+            }
+            if(areAllFlightsCancelledToday(ryanairFlights, date)) return date;
+        }
+
+        // Iterate over all days in September
+        for (int i = 1; i <= 30; i++) {
+            String date = "2018-09-";
+            if(i<10) {
+                date+= "0" + i;
+            } else {
+                date+= i;
+            }
+            if(areAllFlightsCancelledToday(ryanairFlights, date)) return date;
+        }
+
         return null;
+    }
+
+    // If Flight count on given currentDate is greater than 1 and all flights have flightStatus "X" returns true
+    private boolean areAllFlightsCancelledToday(Dataset<Row> ryanairFlights, String currentDate) {
+        Dataset<Row> flightsOnCurrentDate = ryanairFlights.select("flightStatus")
+            .filter(ryanairFlights.col("originDate").equalTo(currentDate))
+            .filter(ryanairFlights.col("flightStatus").isNotNull());
+        long totalFlightsOnCurrentDate = flightsOnCurrentDate.count();
+        if (totalFlightsOnCurrentDate <= 1) {
+            return false;
+        }
+
+        Dataset<Row> cancelledFlightsOnCurrentDate = flightsOnCurrentDate.select("flightStatus")
+            .filter(ryanairFlights.col("flightStatus").equalTo("X"));
+        long totalCancelledFlightsOnCurrentDate = cancelledFlightsOnCurrentDate.count();
+        if (totalCancelledFlightsOnCurrentDate == totalFlightsOnCurrentDate) {
+            return true;
+        }
+        return false;
     }
 
     /**
