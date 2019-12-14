@@ -111,8 +111,17 @@ public class AirportInfoImpl implements AirportInfo {
      */
     @Override
     public JavaPairRDD<String, Long> aircraftCountOnDate(Dataset<Row> flights, String originDate) {
-        // TODO: Implement
-        return null;
+        Dataset<Row> flightsOnOriginDate = flights.select("flight.aircraftType.modelName")
+            .filter(flights.col("flight.originDate").equalTo(originDate))
+            .filter(flights.col("flight.aircraftType.modelName").isNotNull())
+            .filter(flights.col("flight.aircraftType.modelName").notEqual(""));
+
+        Dataset<Row> countFlightsOnOriginDate = flightsOnOriginDate.groupBy("modelName").count().orderBy(col("count").desc());
+        System.out.println("Task 3 - aircraftCountOnDate");
+        countFlightsOnOriginDate.show();
+        JavaRDD<Row> rdd = countFlightsOnOriginDate.toJavaRDD();
+        JavaPairRDD<String, Long> returnRdd = rdd.mapToPair(r -> Tuple2.apply(r.getString(0), r.getLong(1)));
+        return returnRdd;
     }
 
     /**
