@@ -5,10 +5,10 @@ import com.google.gson.GsonBuilder;
 import ex.deserialization.objects.Flight;
 import ex.deserialization.objects.FlightObj;
 import org.apache.spark.SparkConf;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.api.java.function.MapPartitionsFunction;
+import org.apache.spark.sql.*;
+
+import java.util.LinkedList;
 
 public class FlightParserImpl implements FlightParser {
 
@@ -42,6 +42,23 @@ public class FlightParserImpl implements FlightParser {
     @Override
     public Dataset<Flight> parseFlights(String path) {
         Dataset<String> lines = sparkSession.sqlContext().read().textFile(path);
-        return null;
+
+        MapPartitionsFunction<String, Flight> mapper = jsonFlights -> {
+            GsonBuilder gsonBuilder = new GsonBuilder();
+            gsonBuilder.registerTypeAdapter(FlightObj.class, new FlightAdapter());
+            Gson gson = gsonBuilder.create();
+
+            LinkedList<Flight> flights = new LinkedList<Flight>();
+            String jsonFlight = "";
+            while(jsonFlights.hasNext()){
+                jsonFlight = jsonFlights.next();
+                flights.add(gson.fromJson(jsonFlight, FlightObj.class).getFlight());
+            }
+            return flights.iterator();
+        };
+
+        Dataset<Flight> flightDataset = lines.mapPartitions(mapper, Encoders.bean(Flight.class));
+
+        return flightDataset;
     }
 }

@@ -3,13 +3,14 @@ package ex;
 import ex.deserialization.objects.Flight;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
-import org.apache.spark.sql.Row;
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.*;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalTime;
 import scala.Tuple2;
 
-import static org.apache.spark.sql.functions.col;
-import static org.apache.spark.sql.functions.explode;
+import static org.apache.spark.sql.functions.*;
 
 public class AirportInfoImpl implements AirportInfo {
 
@@ -196,8 +197,19 @@ public class AirportInfoImpl implements AirportInfo {
      */
     @Override
     public Dataset<Flight> flightsOfAirlineWithStatus(Dataset<Flight> flights, String airlineDisplayCode, String status1, String... status) {
-        // TODO: Implement
-        return null;
+        Column filterAirlineCodeColumn = flights.col("airlineDisplayCode").equalTo(airlineDisplayCode);
+        Column filterStatusColumn = flights.col("flightStatus").equalTo(status1);
+        for(String s: status){
+            filterStatusColumn = filterStatusColumn.or(flights.col("flightStatus").equalTo(s));
+        }
+
+        Column filter = filterAirlineCodeColumn.and(filterStatusColumn);
+        System.out.println(filter);
+
+        Dataset<Flight> filteredFlights = flights.filter(filter);
+
+
+        return filteredFlights;
     }
 
     /**
@@ -215,8 +227,23 @@ public class AirportInfoImpl implements AirportInfo {
      */
     @Override
     public double avgNumberOfFlightsInWindow(Dataset<Flight> flights, String lowerLimit, String upperLimit) {
-        // TODO: Implement
-        return 0.0d;
+        Dataset<Flight> flightsInPeriod = flights.filter(flight -> {
+            String flightTime = flight.getScheduledTime();
+            if(flightTime == "") return false;
+
+            return flightTime.compareTo(lowerLimit) >= 0 && flightTime.compareTo(upperLimit) <= 0;
+        });
+
+        MapFunction<Flight, String> map = flight -> {
+            return flight.getScheduled();
+        };
+
+        KeyValueGroupedDataset<String, Flight> groupByDay = flightsInPeriod.groupByKey(map, Encoders.STRING());
+
+        Dataset<Tuple2<String, Object>> count = groupByDay.count();
+        Dataset<Row> avgDataset = count.agg(avg("Count(1)"));
+        double avg = (double)avgDataset.first().get(0);
+        return avg;
     }
 
     /**

@@ -58,4 +58,8 @@ public class Flight implements Serializable {
     public String toString() {
         return airlineDisplayCode + "|" + departureAirport + "|" + arrivalAirport + "|" + originDate + "|" + flightStatus + "|" + scheduled;
     }
+
+    public void setFlightStatus(String flightStatus) {
+        this.flightStatus = flightStatus;
+    }
 }
